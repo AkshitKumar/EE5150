@@ -13,10 +13,10 @@ lambdas = np.array(lambdas)
 for lbda in lambdas:
     nextArrival = np.random.exponential(scale = 1/lbda) # Getting the time for the next arrival
     nextService = nextArrival + np.random.exponential(scale = 1/mu) # Getting the time for the next service
-    numArrivals = 100000 # Setting the number of arrivals 
+    numArrivals = 60000 # Setting the number of arrivals
     presentState = 0; # Setting the initial state of the queue
     queueState = list() # Storing the queue state
-    
+
     # Simulate the M/M/1 Queue for defined number of arrivals
     while(numArrivals > 0):
         # Only arrivals are taking place in the queue
@@ -42,7 +42,7 @@ for lbda in lambdas:
 for lbda in lambdas:
     nextArrival = np.random.exponential(scale = 1/lbda) # Getting the time for the next arrival
     nextService = nextArrival + 1 # Getting the time for the next service (deterministic time)
-    numArrivals = 100000 # Setting the number of arrivals
+    numArrivals = 60000 # Setting the number of arrivals
     presentState = 0; # Setting the initial state of the queue
     queueState = list() # Storing the state queue
 
@@ -62,7 +62,7 @@ for lbda in lambdas:
         else:
             # if the queue is not empty, getting the next service time
             nextService = nextService + 1
-    
+
     queueState = np.array(queueState)
     unique, counts = np.unique(queueState,return_counts = True)
     N_md1.append(np.dot(unique,counts)/np.sum(counts)) # Storing the expected number of customers
@@ -71,14 +71,16 @@ for lbda in lambdas:
 print "Plotting the N vs load for M/M/1 Queue"
 plt.figure(1)
 plt.plot(lambdas,N_mm1,'r',lambdas,lambdas/(1 - lambdas),'--')
-plt.xlabel(r'$\lambda$')
+plt.xlabel(r'$\rho$')
 plt.ylabel('Average Number of Customers in the System')
+plt.title(r'$N$ vs $\rho$ for M/M/1 Queue')
 plt.legend(["Simulation","Theory"])
 
 print "Plotting the N vs load for M/D/1 Queue"
 plt.figure(2)
 plt.plot(lambdas,N_md1,'r',lambdas,np.multiply(lambdas,lambdas)/(2*(1 - lambdas)),'--')
-plt.xlabel(r'$\lambda$')
+plt.xlabel(r'$\rho$')
 plt.ylabel('Average Number of Customers in the System')
+plt.title(r'$N$ vs $\rho$ for M/D/1 Queue')
 plt.legend(["Simulation","Theory"])
 plt.show()
