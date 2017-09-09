@@ -42,7 +42,7 @@ for lbda in lambdas:
 for lbda in lambdas:
     nextArrival = np.random.exponential(scale = 1/lbda) # Getting the time for the next arrival
     nextService = nextArrival + 1 # Getting the time for the next service (deterministic time)
-    numArrivals = 1000000 # Setting the number of arrivals
+    numArrivals = 100000 # Setting the number of arrivals
     presentState = 0; # Setting the initial state of the queue
     queueState = list() # Storing the state queue
 
