@@ -13,7 +13,7 @@ lambdas = np.array(lambdas)
 for lbda in lambdas:
     nextArrival = np.random.exponential(scale = 1/lbda) # Getting the time for the next arrival
     nextService = nextArrival + np.random.exponential(scale = 1/mu) # Getting the time for the next service
-    numArrivals = 50000 # Setting the number of arrivals
+    numArrivals = 1000000 # Setting the number of arrivals
     presentState = 0; # Setting the initial state of the queue
     queueState = list() # Storing the queue state
 
@@ -22,10 +22,12 @@ for lbda in lambdas:
         # Only arrivals are taking place in the queue
         while (nextArrival < nextService):
             numArrivals -= 1; # Decreasing the number of arrivals
+            print " M/m/1 Packet Arrived : %d" % (1000000 - numArrivals)
             presentState += 1; # Increment the state of the queue
             queueState.append(presentState) # Save the state of the queue
             nextArrival += np.random.exponential(scale = 1/lbda) # Getting the time for the next arrival
         presentState -= 1; # If there are no arrivals, decrease the state of the queue
+        presentState = max(0, presentState)
         queueState.append(presentState) # Save the state of the queue
         if(presentState == 0):
             # if the queue is empty, service can only take place after an arrival
@@ -33,6 +35,7 @@ for lbda in lambdas:
         else:
             # if the queue is not empty, getting the next service time
             nextService = nextService + np.random.exponential(scale = 1/mu)
+        print "Present State : %d" %(presentState)
 
     queueState = np.array(queueState)
     unique, counts = np.unique(queueState,return_counts = True)
@@ -42,7 +45,7 @@ for lbda in lambdas:
 for lbda in lambdas:
     nextArrival = np.random.exponential(scale = 1/lbda) # Getting the time for the next arrival
     nextService = nextArrival + 1 # Getting the time for the next service (deterministic time)
-    numArrivals = 50000 # Setting the number of arrivals
+    numArrivals = 1000000 # Setting the number of arrivals
     presentState = 0; # Setting the initial state of the queue
     queueState = list() # Storing the state queue
 
@@ -51,10 +54,12 @@ for lbda in lambdas:
         # Only arrivals are taking place in the queue
         while (nextArrival < nextService):
             numArrivals -= 1; # Decreasing the number of arrivals
+            print "M/D/1 Packet Arrived %d" % (1000000 - numArrivals)
             presentState += 1; # Increment the state of the queue
             queueState.append(presentState) # Save the state of the queue
             nextArrival += np.random.exponential(scale = 1/lbda) # Getting the time for the next arrival
         presentState -= 1; # If there are no arrivals, decrease the state of the queue
+        presentState = max(0, presentState)
         queueState.append(presentState) # Save the state of the queue
         if(presentState == 0):
             # if the queue is empty, service can only take place after an arrival
@@ -67,6 +72,8 @@ for lbda in lambdas:
     unique, counts = np.unique(queueState,return_counts = True)
     N_md1.append(np.dot(unique,counts)/np.sum(counts)) # Storing the expected number of customers
 
+print N_mm1
+print N_md1
 
 print "Plotting the N vs load for M/M/1 Queue"
 plt.figure(1)
@@ -78,7 +85,7 @@ plt.legend(["Simulation","Theory"])
 
 print "Plotting the N vs load for M/D/1 Queue"
 plt.figure(2)
-plt.plot(lambdas,N_md1,'r',lambdas,np.multiply(lambdas,lambdas)/(2*(1 - lambdas)),'--')
+plt.plot(lambdas,N_md1,'r',lambdas,lambdas + np.multiply(lambdas,lambdas)/(2*(1 - lambdas)),'--')
 plt.xlabel(r'$\rho$')
 plt.ylabel('Average Number of Customers in the System')
 plt.title(r'$N$ vs $\rho$ for M/D/1 Queue')
