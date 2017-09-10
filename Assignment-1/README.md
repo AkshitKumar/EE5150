@@ -18,6 +18,11 @@ To change the value of number of arrivals, change the value here
 ```bash
 NUM_ARRIVALS = 1000000
 ```
+## Files
+| File | Purpose |
+| simulation.py | Contains the code for simulation |
+|mm1queue.png| Plot containing the simulation of M/M/1 Queue |
+| md1queue.png | Plot containing the simulation of M/D/1 Queue |
 
 ## Issues/Bugs
 In case of any bug fixes or issues, contact the author at akshitkumar100@gmail.com
