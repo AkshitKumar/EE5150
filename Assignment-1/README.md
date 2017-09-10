@@ -20,6 +20,7 @@ NUM_ARRIVALS = 1000000
 ```
 ## Files
 | File | Purpose |
+|------|:-------:|
 | simulation.py | Contains the code for simulation |
 |mm1queue.png| Plot containing the simulation of M/M/1 Queue |
 | md1queue.png | Plot containing the simulation of M/D/1 Queue |
