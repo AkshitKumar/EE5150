@@ -16,7 +16,7 @@ python optimize.py
 ## Files in the Submission
 |Folder|Purpose|
 |------|:-----:|
-|code| Contains the file optimize.py to find the optimal solution |
+|code| Contains the file optimize.py to find the optimal solution, Also contains the file simulate.py to find the optimal solution using simulation.|
 |report| Contains the report detailing the mathematical formulation of the problem|
 |plot| Contains the plot obtained after running the optimize.py file in .pdf and .png formats|
 
