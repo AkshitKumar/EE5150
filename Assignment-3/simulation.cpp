@@ -1,5 +1,6 @@
 #include <iostream>
 #include <cstdio>
+#include <cstdlib>
 #include <queue>
 #include <vector>
 #include <string>
@@ -14,6 +15,21 @@ struct Packet{
 	int queueId;
 };
 
+int getId(string id){
+	return atoi(id.c_str());
+}
+
+int getSize(string size){
+	return atoi(size.c_str());
+}
+
+int getQueueId(string queueId){
+	return atoi(queueId.c_str());
+}
+
+float getTime(string time){
+	return strtof(time.c_str(),NULL);
+}
 
 int main(){
 	ifstream file("input.txt");
@@ -28,22 +44,21 @@ int main(){
 			token = str.substr(0,pos);
 			switch(item){
 				case 0: 
-					//p.id = getId(token);
-					sscanf(token,"%d",p.id);
+					p.id = getId(token);
+					break;
 				case 1:
-					//p.time = getTime(token);
-					sscanf(token,"%f",p.time);
+					p.time = getTime(token);
+					break;
 				case 2 :
-					//p.size = getSize(token);
-				sscanf(token,"%d",p.size);
+					p.size = getSize(token);
+					break;
 				default :
-					cout << "Error";
+					cout << "Error" << endl;
 			}
-			item += item;
+			item += 1;
 			str.erase(0,pos + delimiter.length());
 		}
-		//p.queueId = getQueueId(str);
-		sscanf(str,"%d",p.queueId);
+		p.queueId = getQueueId(str);
 		cout << p.id << " " << p.time << " " << p.size << " " << p.queueId << endl;
 	}
 	return 0;
