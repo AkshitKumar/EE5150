@@ -34,7 +34,7 @@ for lbda in lambdas:
         else:
             # if the queue is not empty, getting the next service time
             nextService = nextService + np.random.exponential(scale = 1/mu)
-        
+
     queueState = np.array(queueState)
     unique, counts = np.unique(queueState,return_counts = True)
     N_mm1.append(np.dot(unique,counts)/np.sum(counts)) # Storing the expected number of customers
