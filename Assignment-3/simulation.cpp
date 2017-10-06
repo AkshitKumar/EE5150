@@ -5,15 +5,28 @@
 #include <vector>
 #include <string>
 #include <fstream>
+#include <stack>
+#include <algorithm>
 
 using namespace std;
+static const int NUM_QUEUE = 4;
+float weights[] = {0.1,0.2,0.3,0.4};
+int active[] = {0,0,0,0};
 
 struct Packet{
 	int id;
-	float time;
+	float arrivalTime;
 	int size;
 	int queueId;
+	float serviceStartTime;
+	float serviceRemaining;
+	float departureTime;
 };
+
+queue<Packet> Queue[NUM_QUEUE];
+queue<Packet> WFQScheduler;
+queue<Packet> GPSScheduler;
+vector<Packet> GPSQueue;
 
 int getId(string id){
 	return atoi(id.c_str());
@@ -43,10 +56,11 @@ Packet packetDetails(string str,string delimiter){
 				p.id = getId(token);
 				break;
 			case 1:
-				p.time = getTime(token);
+				p.arrivalTime = getTime(token);
 				break;
 			case 2 :
 				p.size = getSize(token);
+				p.serviceRemaining = (float) p.size;
 				break;
 			default :
 				cout << "Error" << endl;
@@ -58,14 +72,145 @@ Packet packetDetails(string str,string delimiter){
 	return p;
 }
 
+float getServiceRate(int i){
+	float denominator = 0;
+	for(int j = 0; j < NUM_QUEUE; j++){
+		denominator += (active[j] * weights[j]);
+	}
+	return ((float)weights[i]/(float)denominator) * 1000.0;
+}
+
+void servicePacketsInQueue(queue<Packet> Queue[],float t_next,float t_prev){
+	for(int i = 0; i < NUM_QUEUE; i++){
+		if(!Queue[i].empty()){
+			active[i] = 1;
+		}
+		else{
+			active[i] = 0;
+		}
+	}
+	float serviceTime[] = {10e7,10e7,10e7,10e7};
+	vector<float> serviceTimeVector(serviceTime, serviceTime + sizeof(serviceTime)/sizeof(serviceTime[0]));
+	for(int i = 0; i < NUM_QUEUE; i++){
+		if(!Queue[i].empty()){
+			Packet frontPacket = Queue[i].front();
+			float serviceRate = getServiceRate(i);
+			float timeForService = Queue[i].front().serviceRemaining / serviceRate;
+			serviceTimeVector[i] = timeForService;
+		}
+	}
+	float minServiceTime = *min_element(serviceTimeVector.begin(),serviceTimeVector.end());
+	if(minServiceTime > t_next - t_prev){
+		// Serve all the front packets
+		for(int i = 0; i < NUM_QUEUE; i++){
+			if(!Queue[i].empty()){
+				Packet frontPacket = Queue[i].front();
+				float serviceRate = getServiceRate(i);
+				Queue[i].front().serviceRemaining -= (t_next - t_prev) * serviceRate;
+			}
+		}
+	}
+	else{
+		int queueIndex = distance(serviceTimeVector.begin(), min_element(serviceTimeVector.begin(), serviceTimeVector.end()));
+		for(int i = 0; i < NUM_QUEUE; i++){
+			if(!Queue[i].empty()){
+				Packet frontPacket = Queue[i].front();
+				float serviceRate = getServiceRate(i);
+				Queue[i].front().serviceRemaining -= (minServiceTime) * serviceRate;
+			}
+		}
+		Queue[queueIndex].front().departureTime = minServiceTime + t_prev;
+		GPSScheduler.push(Queue[queueIndex].front());
+		GPSQueue.push_back(Queue[queueIndex].front());
+		Queue[queueIndex].pop();
+		t_prev += minServiceTime;
+		servicePacketsInQueue(Queue,t_next,t_prev);
+	}
+}
+
+int findFirstArrival(vector<Packet> GPSQueue){
+	int index = 0;
+	float min_arrival_time = GPSQueue[0].arrivalTime;
+	for(vector<Packet>::iterator it = GPSQueue.begin() ; it!= GPSQueue.end(); ++it){
+		if(it->arrivalTime < min_arrival_time){
+			index = it - GPSQueue.begin();
+		}
+	}
+	return index;
+}
+
+int minDepartTimeId(std::vector<Packet> tempBuffer){
+	int id = tempBuffer[0].id;
+	float time = tempBuffer[0].departureTime;
+	for(vector<Packet>::iterator it = tempBuffer.begin() ; it!= tempBuffer.end(); ++it){
+		if(it->departureTime < time){
+			id = it->id;
+		}
+	}
+	return id;
+}
+
+int findIndexofMinId(std::vector<Packet> GPSQueue, int minId){
+	int index = 0;
+	for(vector<Packet>::iterator it = GPSQueue.begin() ; it!= GPSQueue.end(); ++it){
+		if(it->id == minId){
+			index = it - GPSQueue.begin();
+		}
+	}
+	return index;
+}
+
 int main(){
 	ifstream file("input.txt");
 	string str;
 	string delimiter = ";";
+	float t_prev = 0;
+	float t_next = 0;
+	bool firstArrival = true;
 	while(getline(file,str)){
-		Packet p = packetDetails(str,delimiter);
-		cout << p.id << " " << p.time << " " << p.size << " " << p.queueId << endl;
+		Packet p  = packetDetails(str,delimiter);
+		t_next = p.arrivalTime;
+		if(firstArrival){
+			Queue[p.queueId - 1].push(p);
+			firstArrival = false;
+		}
+		else{
+			servicePacketsInQueue(Queue,t_next,t_prev);
+			Queue[p.queueId - 1].push(p);
+		}
+		t_prev = t_next;		
+	}
+	servicePacketsInQueue(Queue,t_next + 100, t_prev);
+	cout << "Output Using a GPS Scheduler" << endl;
+	while(!GPSScheduler.empty()){
+		cout << "Packet Id : " << GPSScheduler.front().id << " \t Departure Time : " << GPSScheduler.front().departureTime << endl;
+		GPSScheduler.pop();
+	}
+	// Implement the WFQ 
+	float WFQdepartureTime = 0;
+	int firstArrivalIndex = findFirstArrival(GPSQueue);
+	GPSQueue[firstArrivalIndex].departureTime = GPSQueue[firstArrivalIndex].arrivalTime + (GPSQueue[firstArrivalIndex].size/1000.0);
+	WFQdepartureTime = GPSQueue[firstArrivalIndex].departureTime;
+	WFQScheduler.push(GPSQueue[firstArrivalIndex]);
+	GPSQueue.erase(GPSQueue.begin() + firstArrivalIndex);
+	while(!GPSQueue.empty()){
+		std::vector<Packet> tempBuffer;
+		for(vector<Packet>::iterator it = GPSQueue.begin() ; it!= GPSQueue.end(); ++it){
+			if(it->arrivalTime < WFQdepartureTime){
+				tempBuffer.push_back(*it);
+			}
+		}
+		int minId = minDepartTimeId(tempBuffer);
+		int indexMinId = findIndexofMinId(GPSQueue,minId);
+		WFQdepartureTime += (GPSQueue[indexMinId].size/1000.0);
+		GPSQueue[indexMinId].departureTime = WFQdepartureTime ;	
+		WFQScheduler.push(GPSQueue[indexMinId]);
+		GPSQueue.erase(GPSQueue.begin() + indexMinId);
+	}
+	cout << "Output Using a WFQ Scheduler" << endl;
+	while(!WFQScheduler.empty()){
+		cout << "Packet Id : " << WFQScheduler.front().id << " \t Departure Time : " << WFQScheduler.front().departureTime << endl;
+		WFQScheduler.pop();
 	}
 	return 0;
 }
-
