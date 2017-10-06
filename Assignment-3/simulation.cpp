@@ -1,3 +1,11 @@
+/* 
+Source Code : GPS and WFQ Implementation in C++
+Author : Akshit Kumar
+Roll No. : EE14B127 
+Course : Communication Networks 
+*/
+
+// Inclusion of required libraries
 #include <iostream>
 #include <cstdio>
 #include <cstdlib>
@@ -5,14 +13,16 @@
 #include <vector>
 #include <string>
 #include <fstream>
-#include <stack>
 #include <algorithm>
 
 using namespace std;
+
+// Defining the parameters of the queues
 static const int NUM_QUEUE = 4;
 float weights[] = {0.1,0.2,0.3,0.4};
 int active[] = {0,0,0,0};
 
+// Defining a struct Packet for holding information about the incoming packet
 struct Packet{
 	int id;
 	float arrivalTime;
@@ -23,10 +33,23 @@ struct Packet{
 	float departureTime;
 };
 
+// Initializing the data structures to be used
 queue<Packet> Queue[NUM_QUEUE];
 queue<Packet> WFQScheduler;
 queue<Packet> GPSScheduler;
 vector<Packet> GPSQueue;
+
+/* 
+Set of helper functions 
+getId - Converts string id to int 
+getSize - Converts string size to int
+getQueueId - Converts string queueId to int
+getTime - Converts string time to float
+packetDetails - processes the string to create a struct instance
+getServiceRate - Calculates the serviceRate for a queue given the conditions of the other queues
+findFirstArrival - Finds the index of the 
+
+*/
 
 int getId(string id){
 	return atoi(id.c_str());
@@ -183,13 +206,14 @@ int main(){
 	servicePacketsInQueue(Queue,t_next + 100, t_prev);
 	cout << "Output Using a GPS Scheduler" << endl;
 	while(!GPSScheduler.empty()){
-		cout << "Packet Id : " << GPSScheduler.front().id << " \t Departure Time : " << GPSScheduler.front().departureTime << endl;
+		cout << "Packet Id:" << GPSScheduler.front().id << " \t Service Start Time:" << GPSScheduler.front().arrivalTime <<" \t Departure Time:" << GPSScheduler.front().departureTime << endl;
 		GPSScheduler.pop();
 	}
 	// Implement the WFQ 
 	float WFQdepartureTime = 0;
 	int firstArrivalIndex = findFirstArrival(GPSQueue);
 	GPSQueue[firstArrivalIndex].departureTime = GPSQueue[firstArrivalIndex].arrivalTime + (GPSQueue[firstArrivalIndex].size/1000.0);
+	GPSQueue[firstArrivalIndex].serviceStartTime = GPSQueue[firstArrivalIndex].arrivalTime;
 	WFQdepartureTime = GPSQueue[firstArrivalIndex].departureTime;
 	WFQScheduler.push(GPSQueue[firstArrivalIndex]);
 	GPSQueue.erase(GPSQueue.begin() + firstArrivalIndex);
@@ -202,6 +226,7 @@ int main(){
 		}
 		int minId = minDepartTimeId(tempBuffer);
 		int indexMinId = findIndexofMinId(GPSQueue,minId);
+		GPSQueue[indexMinId].serviceStartTime = WFQdepartureTime;
 		WFQdepartureTime += (GPSQueue[indexMinId].size/1000.0);
 		GPSQueue[indexMinId].departureTime = WFQdepartureTime ;	
 		WFQScheduler.push(GPSQueue[indexMinId]);
@@ -209,7 +234,7 @@ int main(){
 	}
 	cout << "Output Using a WFQ Scheduler" << endl;
 	while(!WFQScheduler.empty()){
-		cout << "Packet Id : " << WFQScheduler.front().id << " \t Departure Time : " << WFQScheduler.front().departureTime << endl;
+		cout << "Packet Id:" << WFQScheduler.front().id << " \t Service Start Time:" << WFQScheduler.front().serviceStartTime <<" \t Departure Time:" << WFQScheduler.front().departureTime << endl;
 		WFQScheduler.pop();
 	}
 	return 0;
