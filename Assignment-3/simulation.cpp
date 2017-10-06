@@ -47,8 +47,9 @@ getQueueId - Converts string queueId to int
 getTime - Converts string time to float
 packetDetails - processes the string to create a struct instance
 getServiceRate - Calculates the serviceRate for a queue given the conditions of the other queues
-findFirstArrival - Finds the index of the 
-
+findFirstArrival - Finds the index of the first arrival
+minDepartTimeId - Finds the id of the Packet with minimum departure time//virtual finish time
+findIndexofMinId - Finds the index of the id of the packet with minimum departure time/virtual finish time
 */
 
 int getId(string id){
@@ -103,54 +104,6 @@ float getServiceRate(int i){
 	return ((float)weights[i]/(float)denominator) * 1000.0;
 }
 
-void servicePacketsInQueue(queue<Packet> Queue[],float t_next,float t_prev){
-	for(int i = 0; i < NUM_QUEUE; i++){
-		if(!Queue[i].empty()){
-			active[i] = 1;
-		}
-		else{
-			active[i] = 0;
-		}
-	}
-	float serviceTime[] = {10e7,10e7,10e7,10e7};
-	vector<float> serviceTimeVector(serviceTime, serviceTime + sizeof(serviceTime)/sizeof(serviceTime[0]));
-	for(int i = 0; i < NUM_QUEUE; i++){
-		if(!Queue[i].empty()){
-			Packet frontPacket = Queue[i].front();
-			float serviceRate = getServiceRate(i);
-			float timeForService = Queue[i].front().serviceRemaining / serviceRate;
-			serviceTimeVector[i] = timeForService;
-		}
-	}
-	float minServiceTime = *min_element(serviceTimeVector.begin(),serviceTimeVector.end());
-	if(minServiceTime > t_next - t_prev){
-		// Serve all the front packets
-		for(int i = 0; i < NUM_QUEUE; i++){
-			if(!Queue[i].empty()){
-				Packet frontPacket = Queue[i].front();
-				float serviceRate = getServiceRate(i);
-				Queue[i].front().serviceRemaining -= (t_next - t_prev) * serviceRate;
-			}
-		}
-	}
-	else{
-		int queueIndex = distance(serviceTimeVector.begin(), min_element(serviceTimeVector.begin(), serviceTimeVector.end()));
-		for(int i = 0; i < NUM_QUEUE; i++){
-			if(!Queue[i].empty()){
-				Packet frontPacket = Queue[i].front();
-				float serviceRate = getServiceRate(i);
-				Queue[i].front().serviceRemaining -= (minServiceTime) * serviceRate;
-			}
-		}
-		Queue[queueIndex].front().departureTime = minServiceTime + t_prev;
-		GPSScheduler.push(Queue[queueIndex].front());
-		GPSQueue.push_back(Queue[queueIndex].front());
-		Queue[queueIndex].pop();
-		t_prev += minServiceTime;
-		servicePacketsInQueue(Queue,t_next,t_prev);
-	}
-}
-
 int findFirstArrival(vector<Packet> GPSQueue){
 	int index = 0;
 	float min_arrival_time = GPSQueue[0].arrivalTime;
@@ -183,6 +136,63 @@ int findIndexofMinId(std::vector<Packet> GPSQueue, int minId){
 	return index;
 }
 
+/* GPS Scheduler */
+void servicePacketsInQueue(queue<Packet> Queue[],float t_next,float t_prev){
+	// Checks which queues are empty
+	for(int i = 0; i < NUM_QUEUE; i++){
+		if(!Queue[i].empty()){
+			active[i] = 1;
+		}
+		else{
+			active[i] = 0;
+		}
+	}
+	float serviceTime[] = {10e7,10e7,10e7,10e7};
+	vector<float> serviceTimeVector(serviceTime, serviceTime + sizeof(serviceTime)/sizeof(serviceTime[0]));
+	// Calculates the service times for Head of Line packets of non empty queues
+	for(int i = 0; i < NUM_QUEUE; i++){
+		if(!Queue[i].empty()){
+			Packet frontPacket = Queue[i].front();
+			float serviceRate = getServiceRate(i);
+			float timeForService = Queue[i].front().serviceRemaining / serviceRate;
+			serviceTimeVector[i] = timeForService;
+		}
+	}
+	// Gets the minimum service time across all the queues
+	float minServiceTime = *min_element(serviceTimeVector.begin(),serviceTimeVector.end());
+	if(minServiceTime > t_next - t_prev){
+		// Serve all the front packets
+		for(int i = 0; i < NUM_QUEUE; i++){
+			if(!Queue[i].empty()){
+				Packet frontPacket = Queue[i].front();
+				float serviceRate = getServiceRate(i);
+				Queue[i].front().serviceRemaining -= (t_next - t_prev) * serviceRate;
+			}
+		}
+	}
+	else{
+		int queueIndex = distance(serviceTimeVector.begin(), min_element(serviceTimeVector.begin(), serviceTimeVector.end()));
+		// Serves all the other packets first
+		for(int i = 0; i < NUM_QUEUE; i++){
+			if(!Queue[i].empty()){
+				Packet frontPacket = Queue[i].front();
+				float serviceRate = getServiceRate(i);
+				Queue[i].front().serviceRemaining -= (minServiceTime) * serviceRate;
+			}
+		}
+		// Dequeues the departing packet
+		Queue[queueIndex].front().departureTime = minServiceTime + t_prev;
+		GPSScheduler.push(Queue[queueIndex].front());
+		GPSQueue.push_back(Queue[queueIndex].front());
+		Queue[queueIndex].pop();
+		t_prev += minServiceTime;
+		// Recursive function call to adhere to other possible departures
+		servicePacketsInQueue(Queue,t_next,t_prev);
+	}
+}
+
+
+
 int main(){
 	ifstream file("input.txt");
 	string str;
@@ -190,6 +200,7 @@ int main(){
 	float t_prev = 0;
 	float t_next = 0;
 	bool firstArrival = true;
+	// Reading in from the file
 	while(getline(file,str)){
 		Packet p  = packetDetails(str,delimiter);
 		t_next = p.arrivalTime;
